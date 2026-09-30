@@ -276,6 +276,7 @@ Chrome / Chromium
 pip install scrapy
 pip install DrissionPage
 pip install scrapy-redis
+pip install scrapy-drissionpage
 ```
 
 如果项目后续增加其他依赖，可以使用：

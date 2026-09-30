@@ -46,11 +46,8 @@ demo/
 │
 ├── .gitignore
 └── README.md
+
 ```
-
-> `scrapy-redis/` 和 `temp/` 为本地开发、测试目录，不纳入 Git 版本控制。
-
----
 
 # 🕷️ 项目一：Scrapy + DrissionPage
 
@@ -121,9 +118,9 @@ response.page.run_js(...)
 
 ---
 
-## 🛒 京东数据采集
+## 🛒 某东数据采集
 
-项目以京东搜索页面作为练习目标。
+项目以某东搜索页面作为练习目标。
 
 例如：
 
@@ -148,7 +145,7 @@ https://search.jd.com/Search?keyword=手机
 
 ## 🔄 懒加载处理
 
-京东页面存在动态加载内容，因此项目通过不断滚动页面的方式触发更多数据加载：
+某东页面存在动态加载内容，因此项目通过不断滚动页面的方式触发更多数据加载：
 
 ```python
 while True:
@@ -209,7 +206,7 @@ distributed_scrapy-drissionpage-redis/
              ↓     ↓     ↓
         DrissionPage
              ↓
-           京东
+           某东
              ↓
           数据采集
 ```

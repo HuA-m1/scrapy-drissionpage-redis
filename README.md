@@ -1,4 +1,4 @@
-# Scrapy 爬虫项目集合(更新修改版)
+# Scrapy 项目(更新修改版)
 
 基于 **Scrapy、DrissionPage 和 Scrapy-Redis** 的 Python 爬虫项目。
 

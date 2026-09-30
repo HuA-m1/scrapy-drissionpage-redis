@@ -359,6 +359,18 @@ distributed_scrapy-drissionpage-redis/
 scrapy crawl JDDP_REDIS
 ```
 
+或
+
+```text
+distributed_scrapy-drissionpage-redis/JD_DP/spiders
+```
+
+运行：
+
+```bash
+scrapy runspider JDDP.py
+```
+
 多个机器或多个进程可以连接到同一个 Redis 服务，从 Redis 队列中获取任务。
 
 例如：
@@ -416,256 +428,6 @@ self.drission_request(
 
 ---
 
-## 🚀 核心改动
-
-本项目并不是简单地将 Scrapy 和 DrissionPage 进行组合，而是针对两者结合使用时的**请求与浏览器页面对象管理问题**进行了封装和改进。
-
-### 1. 自定义 `DrissionRequest`
-
-重新封装 Scrapy 的 `Request`，增加 DrissionPage 所需要的请求参数。
-
-```python
-DrissionRequest(
-    url=url,
-    page_type='chromium',
-    timeout=30,
-    load_mode='normal',
-    wait_time=1
-)
-```
-
-将这些参数统一保存到 `Request.meta` 中，使参数能够随着 Scrapy 请求传递到 DrissionPage 中间件。
-
-支持：
-
-* `page_type`
-* `timeout`
-* `load_mode`
-* `wait_time`
-* `wait_element`
-* `proxy`
-
----
-
-### 2. 自定义 `DrissionResponse`
-
-在 Scrapy 原本的 `TextResponse` 基础上增加 DrissionPage 页面对象：
-
-```python
-response.page
-```
-
-因此在 Scrapy 的 `parse()` 中可以直接操作浏览器页面：
-
-```python
-response.page.ele(...)
-response.page.eles(...)
-response.page.scroll(...)
-response.page.run_js(...)
-```
-
-同时扩展了：
-
-```python
-response.click()
-response.input()
-response.scroll()
-response.screenshot()
-response.wait_for_element()
-response.wait_for_text()
-response.wait_for_url()
-response.execute_script()
-response.refresh()
-```
-
-使 Scrapy 的 `Response` 不再只是 HTML 数据，同时可以作为当前浏览器页面的操作入口。
-
----
-
-### 3. 自定义 `DrissionSpider`
-
-对 Scrapy 的 `Spider` 进行扩展，统一管理 DrissionPage：
-
-```python
-self.drission_request(...)
-```
-
-并提供：
-
-```python
-self.chromium
-self.session
-self.current_tab
-self.new_tab()
-self.get_tab()
-```
-
-同时封装了：
-
-* 浏览器管理
-* Session 管理
-* 代理设置
-* 数据包监听
-* 数据包等待
-* 文件下载
-* 下载路径设置
-* 下载文件名设置
-
-使 Spider 层可以直接使用 DrissionPage 的浏览器能力。
-
----
-
-### 4. 解决 `latest_tab` 页面对象覆盖问题
-
-这是本项目比较核心的改动。
-
-传统情况下，如果多个 Scrapy Request 连续创建浏览器 Tab，然后通过：
-
-```python
-browser.latest_tab
-```
-
-获取页面，很容易出现页面对象错配。
-
-例如：
-
-```text
-Request A
-    ↓
-创建 Tab A
-    ↓
-Request B
-    ↓
-创建 Tab B
-    ↓
-latest_tab
-    ↓
-Tab B
-```
-
-此时 Request A 如果再次通过 `latest_tab` 获取页面，就可能错误地拿到 Tab B。
-
-本项目将**Scrapy Request、DrissionPage Tab 和 DrissionResponse 进行绑定**：
-
-```text
-Request A ─────→ Tab A ─────→ Response A
-                                  ↓
-                             response.page
-                                  ↓
-                                Tab A
-
-
-Request B ─────→ Tab B ─────→ Response B
-                                  ↓
-                             response.page
-                                  ↓
-                                Tab B
-```
-
-因此 `parse()` 中：
-
-```python
-response.page
-```
-
-获取的是**当前 Request 对应的页面对象**，而不是简单依赖全局的 `latest_tab`。
-
-这样可以避免多个请求之间因为 Tab 切换造成的页面对象覆盖和数据错配。
-
----
-
-### 5. 支持 Scrapy-Redis
-
-在上述基础上进一步接入 `Scrapy-Redis`：
-
-```text
-                Redis
-                  ↓
-             请求任务队列
-                  ↓
-            Scrapy Scheduler
-                  ↓
-          DrissionRequest
-                  ↓
-            DrissionPage
-                  ↓
-              Chromium
-                  ↓
-              页面数据
-```
-
-Redis 负责：
-
-* 请求队列
-* 请求去重
-* 多个爬虫实例之间的任务共享
-
-因此可以将原本：
-
-```python
-start()
-    ↓
-yield Request
-```
-
-的请求来源扩展为：
-
-```text
-Redis
-  ↓
-Scrapy-Redis
-  ↓
-Spider
-  ↓
-DrissionPage
-```
-
----
-
-## 🔥 项目核心
-
-本项目的核心并不是单纯使用 Scrapy 或 DrissionPage，而是对两者之间的**Request → Tab → Response**关系进行了封装。
-
-最终形成：
-
-```text
-Scrapy Request
-      │
-      ▼
-DrissionRequest
-      │
-      ▼
-DrissionPage Middleware
-      │
-      ▼
-Chromium Tab
-      │
-      ▼
-DrissionResponse
-      │
-      ▼
-response.page
-      │
-      ▼
-当前 Request 对应的 Tab
-```
-
-并在此基础上进一步支持：
-
-```text
-Scrapy
-   +
-DrissionPage
-   +
-Scrapy-Redis
-   +
-Redis
-```
-
-从而解决浏览器 Tab 管理与 Scrapy 请求调度之间的衔接问题。
-
----
-
 # ⚠️ 注意事项
 
 1. 本项目主要用于学习 Scrapy、DrissionPage 和 Scrapy-Redis。
@@ -676,7 +438,7 @@ Redis
 
 ---
 
-# 📚 学习方向
+# 📚 方向
 
 后续可以继续扩展：
 

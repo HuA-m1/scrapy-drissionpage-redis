@@ -125,7 +125,7 @@ response.page.run_js(...)
 例如：
 
 ```text
-https://search.jd.com/Search?keyword=手机
+https://example.com/Search?keyword=手机
 ```
 
 可以采集：
@@ -383,7 +383,7 @@ Redis
 例如可以向对应的 Redis key 写入 URL：
 
 ```text
-https://search.jd.com/Search?keyword=手机
+https://example/Search?keyword=手机
 ```
 
 爬虫从 Redis 获取 URL 后，再通过：

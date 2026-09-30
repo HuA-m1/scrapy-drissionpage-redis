@@ -1,6 +1,6 @@
 # Scrapy 项目(更新修改版)
 
-基于 **Scrapy、DrissionPage 和 Scrapy-Redis** 的 Python 爬虫项目。
+基于 **Scrapy、DrissionPage 和 Scrapy-Redis** 的 Python 项目。
 
 本项目的改进:
 将 Scrapy 的请求调度机制与 DrissionPage 的浏览器自动化能力进行进一步深度整合。
